@@ -24,7 +24,7 @@ device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 CLIP = 1.0  # clip grad norm
 
 
-# ---- Noam/Warmup scheduler (tempel di main.py) ----
+# ---- Noam/Warmup scheduler  ----
 class NoamWarmup: #Learning rate naik perlahan saat warmup steps (biar stabil), lalu menurun sesuai step.
     """
     Scheduler gaya Noam: lr = d_model^{-0.5} * min(step^{-0.5}, step * warmup^{-1.5})
