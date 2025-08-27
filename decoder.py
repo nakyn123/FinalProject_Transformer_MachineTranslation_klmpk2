@@ -23,6 +23,7 @@ class BahdanauDecoder(nn.Module):
 		self.decoder_hidden_dim = decoder_hidden_dim
 		self.dropout_p = dropout_p
 
+		# Layer embedding untuk input token bahasa sumber
 		self.embedding = nn.Embedding(output_dim, embedding_dim)
 
 		self.attention = attention

@@ -1,6 +1,8 @@
 import torch.nn as nn
 import torch
 
+# Encoder dengan Bahdanau Attention
+# Encoder membaca urutan input (bahasa sumber) dan menghasilkan representasi konteks
 class BahdanauEncoder(nn.Module):
 	def __init__(self, input_dim, embedding_dim, encoder_hidden_dim, decoder_hidden_dim, dropout_p):
 
@@ -11,6 +13,7 @@ class BahdanauEncoder(nn.Module):
 		self.encoder_hidden_dim = encoder_hidden_dim
 		self.decoder_hidden_dim = decoder_hidden_dim
 
+		# Dropout agar model tidak overfitting
 		self.dropout_p = dropout_p
 
 		self.embedding = nn.Embedding(input_dim, embedding_dim)
@@ -30,4 +33,6 @@ class BahdanauEncoder(nn.Module):
 
 		hidden = torch.tanh(x)
 
+		# outputs → semua hidden state untuk setiap langkah (dipakai attention)
+		# hidden → state ringkasan untuk inisialisasi decoder
 		return outputs, hidden
