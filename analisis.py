@@ -6,11 +6,18 @@ from pathlib import Path
 import matplotlib.pyplot as plt
 from util import *
 
+# Atur seed supaya hasil random bisa direproduksi
 random.seed(7)
 
+# Token spesial untuk NLP
 SPECIALS = ["<pad>", "<bos>", "<eos>", "<unk>"]
 PAD, BOS, EOS, UNK = range(4)
 
+# Fungsi untuk membuat vocabulary dari data
+# - Menghitung frekuensi kata
+# - Memilih kata berdasarkan frekuensi minimum atau batas ukuran
+# - Menambahkan token spesial
+# - Menghasilkan mapping word->id (vocab) dan id->word (itos)
 def build_vocab(token_lists, min_freq=1, max_size=None):
     counter = Counter()
     for toks in token_lists:
@@ -24,13 +31,16 @@ def build_vocab(token_lists, min_freq=1, max_size=None):
     itos = {i: w for w, i in vocab.items()}
     return vocab, itos
 
+# Ubah kalimat menjadi ID angka dengan tambahan <bos> dan <eos>
 def to_ids(tokens, vocab):
     return [BOS] + [vocab.get(t, UNK) for t in tokens] + [EOS]
 
+# Padding batch agar semua sequence punya panjang sama
 def pad_batch(batch, pad_id=PAD):
     max_len = max(len(x) for x in batch)
     return [seq + [pad_id] * (max_len - len(seq)) for seq in batch]
 
+# Split dataset menjadi train/val/test dengan rasio tertentu
 def split_pairs(pairs, train_ratio=0.8, val_ratio=0.1):
     random.shuffle(pairs)
     n = len(pairs)
@@ -41,19 +51,24 @@ def split_pairs(pairs, train_ratio=0.8, val_ratio=0.1):
     test = pairs[n_train + n_val :]
     return train, val, test
 
+# Membuat plot histogram panjang kalimat (dalam jumlah token)
+# Grafik atas: bahasa Inggris (source)
+# Grafik bawah: bahasa Indonesia (target)
 def plot_length_histograms(pairs, title_suffix=""):
     en_lengths = [len(src) for src, _ in pairs]
     id_lengths = [len(tgt) for _, tgt in pairs] # Ganti fr_lengths menjadi id_lengths
 
-    # Choose nice bins up to, say, 20 tokens
+    # Bins untuk histogram, maksimal 20 token atau lebih jika ada kalimat lebih panjang
     max_bin = max(20, max(en_lengths + id_lengths)) # Gunakan id_lengths
     bins = [i + 0.5 for i in range(1, max_bin + 1)] 
 
+    # Histogram panjang kalimat Inggris
     fig, axes = plt.subplots(2, 1, figsize=(8, 6), sharex=True)
     axes[0].hist(en_lengths, bins=bins)
     axes[0].set_title("Panjang Kalimat Inggris (Source)" + title_suffix) # Perbaiki "Ingrris"
     axes[0].set_ylabel("# Kalimat")
 
+    # Histogram panjang kalimat Indonesia
     axes[1].hist(id_lengths, bins=bins) # Gunakan id_lengths
     axes[1].set_title("Panjang Kalimat Indonesia (Target)" + title_suffix)
     axes[1].set_xlabel("# Token pada Kalimat")
