@@ -1,12 +1,21 @@
 import torch
 import torch.nn as nn
 
+# Decoder dengan Bahdanau Attention
+# Bertugas menghasilkan output token satu per satu dengan memanfaatkan konteks dari encoder + perhatian
 class BahdanauDecoder(nn.Module):
 
 	def __init__(self, output_dim, embedding_dim, 
 		encoder_hidden_dim, decoder_hidden_dim, attention, dropout_p):
 
 		super().__init__()
+
+		# output_dim: ukuran vocab target
+		# embedding_dim: ukuran vektor embedding target
+		# encoder_hidden_dim: ukuran hidden encoder
+		# decoder_hidden_dim: ukuran hidden decoder
+		# attention: modul attention (Bahdanau)
+		# dropout_p: probabilitas dropout
 
 		self.embedding_dim = embedding_dim
 		self.output_dim = output_dim
@@ -20,6 +29,7 @@ class BahdanauDecoder(nn.Module):
 		self.gru = nn.GRU((encoder_hidden_dim * 2) + embedding_dim, decoder_hidden_dim)
 
 		self.out = nn.Linear((encoder_hidden_dim * 2) + embedding_dim + decoder_hidden_dim, output_dim)
+		# Dropout untuk regularisasi
 		self.dropout = nn.Dropout(dropout_p)
 
 	def forward(self, x, hidden, encoder_outputs, src_mask=None):
