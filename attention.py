@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 
+# Implementasi Bahdanau Attention dengan Query, Key, Value (QKV)
+# Digunakan untuk menghitung bobot perhatian (attention weights)
 class BahdanauAttentionQKV(nn.Module):
 
 	def __init__(self, hidden_size, query_size=None, key_size=None, dropout_p=0.15):
