@@ -2,7 +2,7 @@ import unicodedata
 from collections import Counter
 from pathlib import Path
 import argparse
-from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction
+from nltk.translate.bleu_score import corpus_bleu, SmoothingFunction #nltk ini untuk nilai BLEU nya
 import json
 import torch
 import torch.nn as nn
@@ -11,9 +11,9 @@ from torch.utils.data import Dataset, DataLoader
 import math
 import matplotlib.pyplot as plt
 import csv
-import sentencepiece as spm
+import sentencepiece as spm #ini untuk tokenisasi subword
 
-from util import *
+from util import * 
 from encoder import BahdanauEncoder
 from decoder import BahdanauDecoder
 from attention import BahdanauAttentionQKV
@@ -25,7 +25,7 @@ CLIP = 1.0  # clip grad norm
 
 
 # ---- Noam/Warmup scheduler (tempel di main.py) ----
-class NoamWarmup:
+class NoamWarmup: #Learning rate naik perlahan saat warmup steps (biar stabil), lalu menurun sesuai step.
     """
     Scheduler gaya Noam: lr = d_model^{-0.5} * min(step^{-0.5}, step * warmup^{-1.5})
     """
@@ -50,6 +50,7 @@ class NoamWarmup:
         return self._step
 
 parser = argparse.ArgumentParser()
+# Parameter ini mengatur dataset yang dipakai, ukuran batch, jumlah epoch pelatihan, laju belajar, serta tingkat dropout untuk regularisasi.
 parser.add_argument('--data_path', type=str, default='data/ind.txt', help='Path to txt data')
 parser.add_argument('--epochs', type=int, default=20, help='Number of training epochs')
 parser.add_argument('--batch_size', type=int, default=32, help='Batch size')
@@ -60,31 +61,43 @@ parser.add_argument('--num_classes', type=int, default=10, help='Number of class
 parser.add_argument('--max_vocab', type=int, default=None)
 parser.add_argument('--target_lang', type=str, default='ID', help='Bahasa tujuan')
 parser.add_argument('--checkpoint', type=str, default='cat_dog_checkpoint.pth', help='Path to save model checkpoint')
+# Menentukan cara memecah teks, apakah berbasis kata (word-level) atau sub-kata (sentencepiece).
 parser.add_argument('--tokenizer', type=str, default='word', choices=['word','sp'],
                     help='Tokenisasi: word-level atau subword (sentencepiece)')
 parser.add_argument('--sp_src_model', type=str, default=None, help='Path SentencePiece model source')
 parser.add_argument('--sp_trg_model', type=str, default=None, help='Path SentencePiece model target')
-
+# Memilih arsitektur model yang digunakan, apakah RNN dengan perhatian Bahdanau atau Transformer.
 parser.add_argument('--model', type=str, default='rnn', choices=['rnn','transformer'],
                     help='Pilih arsitektur: rnn (Bahdanau) atau transformer')  
+# Hyperparameter Transformer
+# Mengatur dimensi embedding, jumlah kepala perhatian, ukuran feed-forward, dan parameter inti Transformer lainnya.
 parser.add_argument('--d_model', type=int, default=256)      
 parser.add_argument('--nhead', type=int, default=8)         
 parser.add_argument('--enc_layers', type=int, default=4)     
 parser.add_argument('--dec_layers', type=int, default=4)       
 parser.add_argument('--ff_dim', type=int, default=1024)        
-parser.add_argument('--pe_dropout', type=float, default=0.1)    
+parser.add_argument('--pe_dropout', type=float, default=0.1)
+# Label smoothing membantu mencegah overconfidence, sedangkan warmup steps mengatur laju belajar secara bertahap di awal pelatihan.    
 parser.add_argument('--label_smoothing', type=float, default=0.0)  
 parser.add_argument('--warmup_steps', type=int, default=0)      
 parser.add_argument('--exp_name', type=str, default='exp')      
 # === PERUBAHAN 1: Tambahkan argumen beam_size ===
+# Menentukan jumlah jalur pencarian saat decoding untuk menghasilkan terjemahan yang lebih optimal.
 parser.add_argument('--beam_size', type=int, default=3, help='Beam size untuk contoh inferensi di akhir training.')      
 args = parser.parse_args()
 
 
 SPECIALS = ["<pad>", "<bos>", "<eos>", "<unk>"]
 PAD, BOS, EOS, UNK = range(4)
+# <pad> : Token ini dipakai untuk meratakan panjang kalimat dalam batch, jadi model bisa memprosesnya sekaligus.
+# <bos> : Token khusus yang selalu diletakkan di awal kalimat agar model tahu kapan mulai membaca/menulis.
+# <eos> : Token penutup yang menunjukkan akhir sebuah kalimat, supaya model berhenti menghasilkan output.
+# <unk> : Token pengganti untuk kata yang tidak ada di kosakata model, jadi model tetap bisa memproses teksnya.
 
 
+
+# Kita ambil semua kata unik dari dataset, lalu tiap kata diberi nomor indeks (misalnya "saya" → 1, "makan" → 2) 
+# supaya teks bisa diubah jadi angka untuk input ke model.
 def build_vocab(token_lists, min_freq=1, max_size=None, specials=["<pad>", "<bos>", "<eos>", "<unk>"]):
     counter = Counter()
     for toks in token_lists:
@@ -174,6 +187,11 @@ test_loader  = DataLoader(test_ds,  batch_size=BATCH_SIZE, shuffle=False, collat
 
 # ==== konstruksi model ====
 if args.model == 'rnn':
+
+# ada encoder (ubah kalimat sumber jadi representasi)
+# attention Bahdanau (pilih bagian penting dari kalimat)
+# dan decoder (hasilin kalimat terjemahan).
+
     ENCODER_HIDDEN_SIZE = 512
     DECODER_HIDDEN_SIZE = 256
     ENCODER_EMBEDDING_DIM = 256
@@ -190,6 +208,9 @@ if args.model == 'rnn':
     seq2seq = BahdanauSeq2Seq(encoder, decoder, device,
                               pad_id=PAD, bos_id=BOS, eos_id=EOS).to(device)
     is_transformer = False
+
+# model lebih modern yang pakai multi-head attention (fokus ke banyak bagian kalimat sekaligus)
+# plus positional encoding (supaya tahu urutan kata).
 else:  # transformer
     seq2seq = TransformerNMT(
         src_vocab_size=input_dim, trg_vocab_size=output_dim,
@@ -201,8 +222,12 @@ else:  # transformer
     is_transformer = True
 
 # ========= Criterion + Optimizer =========
+
+# dipakai untuk mengukur seberapa beda prediksi model dengan label asli; kalau Transformer bisa ditambah label smoothing supaya model tidak terlalu yakin pada 1 jawaban.
 criterion = nn.CrossEntropyLoss(ignore_index=PAD, label_smoothing=args.label_smoothing if is_transformer else 0.0)
+# algoritma buat ngatur bobot model selama training biar loss makin kecil.
 optimizer = torch.optim.Adam(seq2seq.parameters(), lr=args.lr)
+# khusus Transformer, atur learning rate mulai kecil → naik → turun lagi, supaya training lebih stabil.
 scheduler = NoamWarmup(optimizer, d_model=args.d_model, warmup_steps=args.warmup_steps) if args.warmup_steps > 0 and is_transformer else None
 
 def epoch_run(model, loader, train=True, teacher_forcing=0.5):
@@ -271,7 +296,11 @@ print(f"History saved to {hist_csv}")
 # -------------------------------
 # Evaluate on test (best ckpt)
 # -------------------------------
+
+# bagian ini dipakai untuk memuat bobot model terbaik yang sudah disimpan saat training.
 seq2seq.load_state_dict(torch.load(args.checkpoint, map_location=device))
+
+# menjalankan model pada data uji (test set) untuk menghitung hasil akhirnya, misalnya test loss dan perplexity.
 test_loss, test_ppl = epoch_run(seq2seq, test_loader, train=False, teacher_forcing=0.0)
 
 # Helper function
