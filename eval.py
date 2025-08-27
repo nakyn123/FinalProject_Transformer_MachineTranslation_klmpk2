@@ -9,7 +9,10 @@ from tqdm import tqdm
 from pathlib import Path
 import sacrebleu
 
+
 # --- Parser Argumen ---
+# Bagian ini untuk membaca parameter dari command line (misalnya data_path, batch_size, dsb)
+# Hal ini memudahkan kita menjalankan script dengan konfigurasi berbeda tanpa mengubah kode utama.
 parser = argparse.ArgumentParser()
 parser.add_argument('--data_path', type=str, default='data/ind.txt')
 parser.add_argument('--batch_size', type=int, default=64)
@@ -19,6 +22,7 @@ parser.add_argument('--tokenizer', type=str, default='word', choices=['word','sp
 parser.add_argument('--checkpoint', type=str, default='bahdanau_best.pt')
 parser.add_argument('--model', type=str, default='rnn', choices=['rnn','transformer'])
 # PERBAIKAN: Argumen sudah benar, menggunakan nargs='+'
+# Argumen untuk evaluasi dengan berbagai ukuran beam search
 parser.add_argument('--beam_sizes', type=int, nargs='+', default=[1, 3, 5, 10], help='Daftar beam size yang akan dievaluasi.')
 args = parser.parse_args()
 
@@ -27,6 +31,8 @@ PAD, BOS, EOS, UNK = 0, 1, 2, 3
 device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 # ===== Dataset & Vocab =====
+# Jika menggunakan tokenizer "word", maka vocab diambil dari file JSON.
+# Jika menggunakan SentencePiece, vocab diambil dari model SentencePiece.
 data_file = Path(args.data_path)
 
 if args.tokenizer == "word":
@@ -50,10 +56,14 @@ else:  # sentencepiece
     input_dim  = sp_src.get_piece_size()
     output_dim = sp_trg.get_piece_size()
 
+# Loader data uji
+# Untuk beam search (k > 1), batch size diubah menjadi 1 agar decoding lebih mudah.
 # Loader default, akan kita gunakan jika k=1 atau batch_size=1
 test_loader = DataLoader(test_ds, batch_size=args.batch_size, shuffle=False, collate_fn=collate_batch)
 
 # ===== Model =====
+# Jika model yang dipilih RNN, maka gunakan encoder-decoder dengan Bahdanau Attention.
+# Jika model Transformer, maka pakai arsitektur Transformer.
 if args.model == "rnn":
     encoder = BahdanauEncoder(input_dim, 256, 512, 256, dropout_p=0.3)
     attn = BahdanauAttentionQKV(256, 256, 1024)
@@ -74,10 +84,12 @@ else:
         device=device
     ).to(device)
 
+# Load model yang sudah dilatih (checkpoint)
 seq2seq.load_state_dict(torch.load(args.checkpoint, map_location=device))
 seq2seq.eval()
 
 # ===== Evaluation =====
+# Bagian ini mengevaluasi model dengan berbagai nilai beam size.
 all_results = {}
 
 # PERBAIKAN: Memulai loop untuk setiap beam size
