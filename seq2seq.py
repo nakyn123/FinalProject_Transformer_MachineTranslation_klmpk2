@@ -2,6 +2,8 @@ import torch
 import torch.nn as nn
 import random
 
+# Kelas utama Seq2Seq dengan Attention Bahdanau
+# Menggabungkan encoder dan decoder menjadi sebuah model end-to-end
 class BahdanauSeq2Seq(nn.Module):
     def __init__(self, encoder, decoder, device, pad_id=0, bos_id=1, eos_id=2):
         super().__init__()
@@ -34,6 +36,7 @@ class BahdanauSeq2Seq(nn.Module):
         trg_len, _ = trg.size()
 
         # Encode
+        # Encode input sequence
         encoder_outputs, hidden = self.encoder(src)  # enc_out: [src_len, batch, 2*enc_h], hidden: [batch, dec_h]
         src_mask = self.make_src_mask(src)           # [src_len, batch]
 
@@ -44,6 +47,7 @@ class BahdanauSeq2Seq(nn.Module):
         # First input to decoder is <bos>
         input_t = trg[0, :]  # [batch], expected to be <bos>
 
+        # Loop decoding
         for t in range(1, trg_len):
             logits, hidden, attn = self.decoder(input_t, hidden, encoder_outputs, src_mask)
             outputs[t] = logits
@@ -73,6 +77,7 @@ class BahdanauSeq2Seq(nn.Module):
         # Start with <bos>
         input_t = torch.full((batch_size,), self.bos_id, dtype=torch.long, device=self.device)
 
+        # Gabungkan hasil prediksi menjadi tensor
         ys = [input_t]  # list of [batch]
         attn_list = []
 
