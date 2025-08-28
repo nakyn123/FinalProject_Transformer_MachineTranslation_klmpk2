@@ -20,10 +20,7 @@ Tujuan dari penelitian ini adalah mengevaluasi kinerja model Transformer yang di
 ├── prepare_data.py           # Skrip untuk memisahkan data mentah menjadi file per bahasa.
 ├── sp_train.py               # Skrip untuk melatih model tokenizer SentencePiece.
 │
-├── encoder.py                # Implementasi modul Encoder untuk model RNN.
-├── decoder.py                # Implementasi modul Decoder untuk model RNN.
-├── attention.py              # Implementasi mekanisme Attention (Bahdanau).
-├── seq2seq.py                # Wrapper yang menggabungkan Encoder-Decoder RNN.
+
 ├── transformer.py            # Implementasi arsitektur Transformer.
 │
 ├── util.py                   # Kumpulan fungsi bantuan (data loading, padding, dll).
@@ -37,14 +34,8 @@ Tujuan dari penelitian ini adalah mengevaluasi kinerja model Transformer yang di
 ├── *.csv                     # File riwayat hasil training (loss, PPL, BLEU).
 └── README.md                 # File panduan ini.
 
-Eksperimen 1: Baseline RNN + Tokenizer Word-Level
-python main.py --model rnn --tokenizer word --epochs 20 --lr 1e-4 --dropout 0.3 --exp_name rnn_word --checkpoint checkpoints/rnn_word.pt
-
-Eksperimen 2: Baseline RNN + Tokenizer Subword (Studi Ablasi)
-python main.py --model rnn --tokenizer sp --sp_src_model spm_en.model --sp_trg_model spm_id.model --epochs 20 --lr 5e-4 --dropout 0.2 --exp_name rnn_subword --checkpoint checkpoints/rnn_subword.pt
-
-Eksperimen 3: Transformer + Tokenizer Subword
+Eksperimen 1: Transformer + Tokenizer Subword
 python main.py --model transformer --tokenizer sp --sp_src_model spm_en.model --sp_trg_model spm_id.model --epochs 20 --d_model 256 --nhead 8 --enc_layers 4 --dec_layers 4 --ff_dim 1024 --warmup_steps 4000 --label_smoothing 0.1 --exp_name transformer_subword --checkpoint checkpoints/transformer_subword.pt
 
-Eksperimen 4: Transformer + Tokenizer Word-Level (Studi Ablasi)
+Eksperimen 2: Transformer + Tokenizer Word-Level (Studi Ablasi)
 python main.py --model transformer --tokenizer word --epochs 20 --d_model 256 --nhead 8 --enc_layers 4 --dec_layers 4 --ff_dim 1024 --warmup_steps 4000 --label_smoothing 0.1 --exp_name transformer_word --checkpoint checkpoints/transformer_word.pt
