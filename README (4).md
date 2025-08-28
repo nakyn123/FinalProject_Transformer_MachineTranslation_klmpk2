@@ -1,6 +1,7 @@
-Proyek Machine Translation: RNN vs Transformer
+Proyek Machine Translation: Penerapan Arsitektur Transformer dengan
+Tokenisasi SentencePiece menggunakan decoder Beam Search pada Penerjemahan Inggris-Indonesia
 
-Kelompok 2
+Kelompok 2 :
 Amisha Hersavina
 Aisha Utwa Haura
 Azmi Nur
@@ -8,7 +9,7 @@ Nasywa Kynda
 Nur Aisyah Maharani
 Program Studi: Teknik Informatika / Semester 5
 
-Tujuan dari penelitian ini adalah mengevaluasi kinerja model Transformer yang dikombinasikan dengan tokenisasi SentencePiece untuk tugas penerjemahan bahasa. Selain itu, berfokus pada bagaimana arsitektur Transformer yang unggul dalam menangani dependensi jarak jauh dapat bersinergi dengan tokenisasi SentencePiece yang efektif mengatasi masalah kosakata, demi menghasilkan terjemahan yang lebih akurat dan efisien.
+Tujuan utama dari penelitian ini adalah mengevaluasi dan menganalisis efektivitas arsitektur Transformer yang dikombinasikan dengan teknik tokenisasi SentencePiece untuk tugas penerjemahan mesin dari bahasa Inggris ke bahasa Indonesia. Kami berfokus pada bagaimana arsitektur Transformer, dengan mekanisme self-attention, mampu memahami konteks kata dalam kalimat secara menyeluruh, serta bagaimana tokenisasi SentencePiece secara efektif mengatasi masalah kosakata dengan memecah teks menjadi unit sub-kata. Melalui evaluasi yang menggunakan SacreBLEU Score, penelitian ini bertujuan untuk membuktikan bahwa integrasi kedua metode ini menghasilkan terjemahan yang lebih akurat, adaptif, dan alami, sehingga berpotensi menjadi dasar bagi pengembangan penerjemah modern yang lebih efisien dan mudah diimplementasikan.
 
 .
 ├── checkpoints/              # Folder untuk menyimpan model (.pt) yang sudah dilatih
@@ -34,8 +35,8 @@ Tujuan dari penelitian ini adalah mengevaluasi kinerja model Transformer yang di
 ├── *.csv                     # File riwayat hasil training (loss, PPL, BLEU).
 └── README.md                 # File panduan ini.
 
-Eksperimen 1: Transformer + Tokenizer Subword
+run awal untuk data latih
 python main.py --model transformer --tokenizer sp --sp_src_model spm_en.model --sp_trg_model spm_id.model --epochs 20 --d_model 256 --nhead 8 --enc_layers 4 --dec_layers 4 --ff_dim 1024 --warmup_steps 4000 --label_smoothing 0.1 --exp_name transformer_subword --checkpoint checkpoints/transformer_subword.pt
 
-Eksperimen 2: Transformer + Tokenizer Word-Level (Studi Ablasi)
-python main.py --model transformer --tokenizer word --epochs 20 --d_model 256 --nhead 8 --enc_layers 4 --dec_layers 4 --ff_dim 1024 --warmup_steps 4000 --label_smoothing 0.1 --exp_name transformer_word --checkpoint checkpoints/transformer_word.pt
+run untuk eval beam search
+python eval.py --model transformer --tokenizer sp --data_path data/ind.txt --sp_src_model spm_en.model --sp_trg_model spm_id.model --checkpoint checkpoints/transformer_subword.pt
